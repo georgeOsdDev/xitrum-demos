@@ -18,7 +18,6 @@
   </appender>
 
   <!-- Set to INFO to avoid noisy log -->
-  <logger name="com.hazelcast" level="INFO"/>
   <logger name="org.fusesource.scalate" level="INFO"/>
 
   <!-- Should be set to INFO in production mode for speed  -->
