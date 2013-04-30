@@ -1,10 +1,10 @@
 package demos.action
 
 import akka.actor.Actor
+import akka.contrib.pattern.{DistributedPubSubExtension, DistributedPubSubMediator}
 
 import xitrum.{SockJsActor, SockJsText, WebSocketActor, WebSocketText, WebSocketBinary, WebSocketPing, WebSocketPong}
 import xitrum.annotation.{GET, SOCKJS, WEBSOCKET}
-import xitrum.mq.{MessageQueue, QueueMessage}
 
 @GET("sockJsChatDemo")
 class SockJsChat extends AppAction {
@@ -20,50 +20,52 @@ class WebSocketChat extends AppAction {
   }
 }
 
-case class MsgsFromQueue(msgs: Seq[String])
+//------------------------------------------------------------------------------
 
-trait MessageQueueListener {
+trait PubSub {
   this: Actor =>
 
-  protected val TOPIC = "chat"
+  private val TOPIC = "chat"
 
-  protected val listener = (messages: Seq[QueueMessage]) => {
-    val msgs = messages.map(_.body.toString)
-    self ! MsgsFromQueue(msgs)
-
-    // Tell MessageQueue not to unsubscribe this listener
-    false
-  }
+  protected val mediator = DistributedPubSubExtension(context.system).mediator
 
   override def postStop() {
-    MessageQueue.unsubscribe(TOPIC, listener)
+    // Actors are automatically removed from pubsub when they are terminated
+  }
+
+  protected def pub(msg: String) {
+    mediator ! DistributedPubSubMediator.Publish(TOPIC, msg)
+  }
+
+  protected def sub() {
+    mediator ! DistributedPubSubMediator.Subscribe(TOPIC, self)
   }
 }
 
 @SOCKJS("sockJsChat")
-class SockJsChatActor extends SockJsActor with MessageQueueListener {
+class SockJsChatActor extends SockJsActor with PubSub {
   def execute() {
-    MessageQueue.subscribe(TOPIC, listener, 0)
+    sub()
     context.become {
-      case MsgsFromQueue(msgs) =>
-        msgs.foreach { msg => respondSockJsText(msg) }
+      case msgFromPubSub: String =>
+        respondSockJsText(msgFromPubSub)
 
-      case SockJsText(text) =>
-        MessageQueue.publish(TOPIC, text)
+      case SockJsText(msgFromBrowser) =>
+        pub(msgFromBrowser)
     }
   }
 }
 
 @WEBSOCKET("websocketChat")
-class WebSocketChatActor extends WebSocketActor with MessageQueueListener {
+class WebSocketChatActor extends WebSocketActor with PubSub {
   def execute() {
-    MessageQueue.subscribe(TOPIC, listener, 0)
+    sub()
     context.become {
-      case MsgsFromQueue(msgs) =>
-        msgs.foreach { msg => respondWebSocketText(msg) }
+      case msgFromPubSub: String =>
+        respondWebSocketText(msgFromPubSub)
 
-      case WebSocketText(text) =>
-        MessageQueue.publish(TOPIC, text)
+      case WebSocketText(msgFromBrowser) =>
+        pub(msgFromBrowser)
 
       case WebSocketBinary(bytes) =>
       case WebSocketPing =>
