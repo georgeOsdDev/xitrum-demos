@@ -40,7 +40,7 @@ scalacOptions += "-P:continuations:enable"
 
 // Template engine for Xitrum --------------------------------------------------
 
-libraryDependencies += "tv.cntt" %% "xitrum-scalate" % "1.1"
+libraryDependencies += "tv.cntt" %% "xitrum-scalate" % "1.2-SNAPSHOT"
 
 // Precompile Scalate
 seq(scalateSettings:_*)
