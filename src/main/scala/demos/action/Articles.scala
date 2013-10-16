@@ -1,6 +1,7 @@
 package demos.action
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.{Try, Success, Failure}
 
 import xitrum.RequestVar
 import xitrum.annotation.{First, GET, POST, PATCH, DELETE}
@@ -25,9 +26,14 @@ class ArticlesIndex extends AppAction {
 class ArticlesShow extends AppAction {
   def execute() {
     val id      = param[Int]("id")
-    var article = Article.find(id)
-    RVArticle.set(article)
-    respondView()
+    var article = Try(Article.find(id))
+    article match {
+      case Success(v) =>
+        RVArticle.set(v)
+        respondView()
+      case Failure(v) =>
+        respondDefault404Page()
+    }
   }
 }
 
