@@ -59,6 +59,11 @@ scalacOptions += "-P:continuations:enable"
 
 libraryDependencies += "tv.cntt" %% "xitrum-scalate" % "1.2"
 
+// for Leofs
+
+// use local monky patch for Leofs, See lib directory
+// libraryDependencies += "com.amazonaws" % "aws-java-sdk" % "1.6.2"
+
 // Precompile Scalate
 seq(scalateSettings:_*)
 
